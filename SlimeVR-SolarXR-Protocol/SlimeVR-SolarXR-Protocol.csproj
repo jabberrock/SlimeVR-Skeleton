@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1212ED81-1517-43F7-988F-6780B56030F6}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SlimeVR_SolarXR_Protocol</RootNamespace>
+    <AssemblyName>SlimeVR-SolarXR-Protocol</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Google.FlatBuffers, Version=1.0.0.0, Culture=neutral, PublicKeyToken=a5f9b243cdbcd871, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.FlatBuffers.22.10.26\lib\net46\Google.FlatBuffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="datatypes\BodyPart.cs" />
+    <Compile Include="datatypes\Bytes.cs" />
+    <Compile Include="datatypes\DeviceId.cs" />
+    <Compile Include="datatypes\DeviceIdTable.cs" />
+    <Compile Include="datatypes\FilteringType.cs" />
+    <Compile Include="datatypes\FirmwareErrorCode.cs" />
+    <Compile Include="datatypes\hardware_info\BoardType.cs" />
+    <Compile Include="datatypes\hardware_info\FirmwareStatusMask.cs" />
+    <Compile Include="datatypes\hardware_info\HardwareAddress.cs" />
+    <Compile Include="datatypes\hardware_info\HardwareInfo.cs" />
+    <Compile Include="datatypes\hardware_info\HardwareStatus.cs" />
+    <Compile Include="datatypes\hardware_info\ImuType.cs" />
+    <Compile Include="datatypes\hardware_info\McuType.cs" />
+    <Compile Include="datatypes\hardware_info\TrackerDataType.cs" />
+    <Compile Include="datatypes\HzF32.cs" />
+    <Compile Include="datatypes\Ipv4Address.cs" />
+    <Compile Include="datatypes\LogData.cs" />
+    <Compile Include="datatypes\MagnetometerStatus.cs" />
+    <Compile Include="datatypes\math\Quat.cs" />
+    <Compile Include="datatypes\math\Vec3f.cs" />
+    <Compile Include="datatypes\StringTable.cs" />
+    <Compile Include="datatypes\Temperature.cs" />
+    <Compile Include="datatypes\TrackerId.cs" />
+    <Compile Include="datatypes\TrackerRole.cs" />
+    <Compile Include="datatypes\TrackerStatus.cs" />
+    <Compile Include="datatypes\TransactionId.cs" />
+    <Compile Include="data_feed\Bone.cs" />
+    <Compile Include="data_feed\DataFeedConfig.cs" />
+    <Compile Include="data_feed\DataFeedMessage.cs" />
+    <Compile Include="data_feed\DataFeedMessageHeader.cs" />
+    <Compile Include="data_feed\DataFeedUpdate.cs" />
+    <Compile Include="data_feed\device_data\DeviceData.cs" />
+    <Compile Include="data_feed\device_data\DeviceDataMask.cs" />
+    <Compile Include="data_feed\PollDataFeed.cs" />
+    <Compile Include="data_feed\StartDataFeed.cs" />
+    <Compile Include="data_feed\tracker\TrackerData.cs" />
+    <Compile Include="data_feed\tracker\TrackerDataMask.cs" />
+    <Compile Include="data_feed\tracker\TrackerInfo.cs" />
+    <Compile Include="MessageBundle.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="pub_sub\KeyValues.cs" />
+    <Compile Include="pub_sub\Message.cs" />
+    <Compile Include="pub_sub\Payload.cs" />
+    <Compile Include="pub_sub\PubSubHeader.cs" />
+    <Compile Include="pub_sub\PubSubUnion.cs" />
+    <Compile Include="pub_sub\SubscriptionRequest.cs" />
+    <Compile Include="pub_sub\Topic.cs" />
+    <Compile Include="pub_sub\TopicHandle.cs" />
+    <Compile Include="pub_sub\TopicHandleRequest.cs" />
+    <Compile Include="pub_sub\TopicId.cs" />
+    <Compile Include="pub_sub\TopicMapping.cs" />
+    <Compile Include="rpc\AddUnknownDeviceRequest.cs" />
+    <Compile Include="rpc\ArmsMountingResetMode.cs" />
+    <Compile Include="rpc\AssignTrackerRequest.cs" />
+    <Compile Include="rpc\AutoBoneApplyRequest.cs" />
+    <Compile Include="rpc\AutoBoneCancelRecordingRequest.cs" />
+    <Compile Include="rpc\AutoBoneEpochResponse.cs" />
+    <Compile Include="rpc\AutoBoneProcessRequest.cs" />
+    <Compile Include="rpc\AutoBoneProcessStatusResponse.cs" />
+    <Compile Include="rpc\AutoBoneProcessType.cs" />
+    <Compile Include="rpc\AutoBoneSettings.cs" />
+    <Compile Include="rpc\AutoBoneStopRecordingRequest.cs" />
+    <Compile Include="rpc\ChangeMagToggleRequest.cs" />
+    <Compile Include="rpc\ChangeSettingsRequest.cs" />
+    <Compile Include="rpc\ChangeSkeletonConfigRequest.cs" />
+    <Compile Include="rpc\ClearDriftCompensationRequest.cs" />
+    <Compile Include="rpc\ClearMountingResetRequest.cs" />
+    <Compile Include="rpc\CloseSerialRequest.cs" />
+    <Compile Include="rpc\ComputerDirectory.cs" />
+    <Compile Include="rpc\DriftCompensationSettings.cs" />
+    <Compile Include="rpc\FilteringSettings.cs" />
+    <Compile Include="rpc\FirmwarePart.cs" />
+    <Compile Include="rpc\FirmwareUpdateDeviceId.cs" />
+    <Compile Include="rpc\FirmwareUpdateMethod.cs" />
+    <Compile Include="rpc\FirmwareUpdateRequest.cs" />
+    <Compile Include="rpc\FirmwareUpdateStatus.cs" />
+    <Compile Include="rpc\FirmwareUpdateStatusResponse.cs" />
+    <Compile Include="rpc\FirmwareUpdateStopQueuesRequest.cs" />
+    <Compile Include="rpc\ForgetDeviceRequest.cs" />
+    <Compile Include="rpc\HeartbeatRequest.cs" />
+    <Compile Include="rpc\HeartbeatResponse.cs" />
+    <Compile Include="rpc\HeightRequest.cs" />
+    <Compile Include="rpc\HeightResponse.cs" />
+    <Compile Include="rpc\LegTweaksTmpChange.cs" />
+    <Compile Include="rpc\LegTweaksTmpClear.cs" />
+    <Compile Include="rpc\MagToggleRequest.cs" />
+    <Compile Include="rpc\MagToggleResponse.cs" />
+    <Compile Include="rpc\NewSerialDeviceResponse.cs" />
+    <Compile Include="rpc\OpenSerialRequest.cs" />
+    <Compile Include="rpc\OSCRouterSettings.cs" />
+    <Compile Include="rpc\OSCSettings.cs" />
+    <Compile Include="rpc\OSCTrackersSetting.cs" />
+    <Compile Include="rpc\OTAFirmwareUpdate.cs" />
+    <Compile Include="rpc\OverlayDisplayModeChangeRequest.cs" />
+    <Compile Include="rpc\OverlayDisplayModeRequest.cs" />
+    <Compile Include="rpc\OverlayDisplayModeResponse.cs" />
+    <Compile Include="rpc\RecordBVHRequest.cs" />
+    <Compile Include="rpc\RecordBVHStatus.cs" />
+    <Compile Include="rpc\ResetRequest.cs" />
+    <Compile Include="rpc\ResetResponse.cs" />
+    <Compile Include="rpc\ResetsSettings.cs" />
+    <Compile Include="rpc\ResetStatus.cs" />
+    <Compile Include="rpc\ResetType.cs" />
+    <Compile Include="rpc\RpcMessage.cs" />
+    <Compile Include="rpc\RpcMessageHeader.cs" />
+    <Compile Include="rpc\SaveFileNotification.cs" />
+    <Compile Include="rpc\SerialDevice.cs" />
+    <Compile Include="rpc\SerialDevicePort.cs" />
+    <Compile Include="rpc\SerialDevicesRequest.cs" />
+    <Compile Include="rpc\SerialDevicesResponse.cs" />
+    <Compile Include="rpc\SerialFirmwareUpdate.cs" />
+    <Compile Include="rpc\SerialTrackerFactoryResetRequest.cs" />
+    <Compile Include="rpc\SerialTrackerGetInfoRequest.cs" />
+    <Compile Include="rpc\SerialTrackerGetWifiScanRequest.cs" />
+    <Compile Include="rpc\SerialTrackerRebootRequest.cs" />
+    <Compile Include="rpc\SerialUpdateResponse.cs" />
+    <Compile Include="rpc\ServerInfosRequest.cs" />
+    <Compile Include="rpc\ServerInfosResponse.cs" />
+    <Compile Include="rpc\SetPauseTrackingRequest.cs" />
+    <Compile Include="rpc\SettingsRequest.cs" />
+    <Compile Include="rpc\SettingsResetRequest.cs" />
+    <Compile Include="rpc\SettingsResponse.cs" />
+    <Compile Include="rpc\settings\LegTweaksSettings.cs" />
+    <Compile Include="rpc\settings\ModelRatios.cs" />
+    <Compile Include="rpc\settings\ModelSettings.cs" />
+    <Compile Include="rpc\settings\ModelToggles.cs" />
+    <Compile Include="rpc\settings\SkeletonHeight.cs" />
+    <Compile Include="rpc\SetWifiRequest.cs" />
+    <Compile Include="rpc\SkeletonBone.cs" />
+    <Compile Include="rpc\SkeletonConfigRequest.cs" />
+    <Compile Include="rpc\SkeletonConfigResponse.cs" />
+    <Compile Include="rpc\SkeletonPart.cs" />
+    <Compile Include="rpc\SkeletonResetAllRequest.cs" />
+    <Compile Include="rpc\StartWifiProvisioningRequest.cs" />
+    <Compile Include="rpc\StatusData.cs" />
+    <Compile Include="rpc\StatusMessage.cs" />
+    <Compile Include="rpc\StatusSteamVRDisconnected.cs" />
+    <Compile Include="rpc\StatusSystemFixed.cs" />
+    <Compile Include="rpc\StatusSystemRequest.cs" />
+    <Compile Include="rpc\StatusSystemResponse.cs" />
+    <Compile Include="rpc\StatusSystemUpdate.cs" />
+    <Compile Include="rpc\StatusTrackerError.cs" />
+    <Compile Include="rpc\StatusTrackerReset.cs" />
+    <Compile Include="rpc\StatusUnassignedHMD.cs" />
+    <Compile Include="rpc\SteamVRTrackersSetting.cs" />
+    <Compile Include="rpc\StopWifiProvisioningRequest.cs" />
+    <Compile Include="rpc\TapDetectionSettings.cs" />
+    <Compile Include="rpc\TapDetectionSetupNotification.cs" />
+    <Compile Include="rpc\TrackingPauseStateRequest.cs" />
+    <Compile Include="rpc\TrackingPauseStateResponse.cs" />
+    <Compile Include="rpc\UnknownDeviceHandshakeNotification.cs" />
+    <Compile Include="rpc\VMCOSCSettings.cs" />
+    <Compile Include="rpc\VRCOSCSettings.cs" />
+    <Compile Include="rpc\WifiProvisioningStatus.cs" />
+    <Compile Include="rpc\WifiProvisioningStatusResponse.cs" />
+    <Compile Include="rpc\YawCorrectionSettings.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="AfterBuild">
+    <!-- Move the DLL to the Unity project. -->
+    <PropertyGroup>
+      <TargetDir>..\Shared\Resources</TargetDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <SourceDir Include="bin\Debug\**\*.*"/>
+    </ItemGroup>
+    <Copy SourceFiles="@(SourceDir)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true"/>
+  </Target>
+</Project>
