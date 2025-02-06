@@ -3,12 +3,9 @@ using solarxr_protocol;
 using solarxr_protocol.data_feed;
 using solarxr_protocol.data_feed.device_data;
 using solarxr_protocol.data_feed.tracker;
-using solarxr_protocol.datatypes;
-using solarxr_protocol.datatypes.math;
 using solarxr_protocol.pub_sub;
 using solarxr_protocol.rpc;
 using System;
-using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -18,12 +15,20 @@ public class NetworkHumanSkeleton : MonoBehaviour
 {
     public GameObject Camera;
 
+    public class DataFeedEntry
+    {
+        public DataFeedUpdate Update;
+        public Vector3 CameraPosition;
+        public Quaternion CameraRotation;
+    }
+
+    public DataFeedEntry LatestDataFeedUpdate { get; private set; }
+    
     private readonly Uri serverUri = new("ws://localhost:21110");
-    private const int DataFeedUpdateDelayInMs = 20;
-    private const float BoneRadius = 0.05f;
+    private const int FPS = 30;
+    private const int DataFeedUpdateDelayInMs = 1000 / FPS;
 
     private readonly CancellationTokenSource cancellationTokenSource = new();
-    private readonly Dictionary<BodyPart, GameObject> boneObjects = new();
 
     void Start()
     {
@@ -139,10 +144,25 @@ public class NetworkHumanSkeleton : MonoBehaviour
 
         var builder = new FlatBufferBuilder(new ByteBuffer(buffer));
 
+        TrackerDataMask.StartTrackerDataMask(builder);
+        TrackerDataMask.AddInfo(builder, true);
+        TrackerDataMask.AddStatus(builder, true);
+        TrackerDataMask.AddPosition(builder, true);
+        TrackerDataMask.AddRotationIdentityAdjusted(builder, true);
+        TrackerDataMask.AddRotationReferenceAdjusted(builder, true);
+        var physicalTrackersMask = TrackerDataMask.EndTrackerDataMask(builder);
+
         DeviceDataMask.StartDeviceDataMask(builder);
+        DeviceDataMask.AddTrackerData(builder, physicalTrackersMask);
+        DeviceDataMask.AddDeviceData(builder, true);
         var deviceDataMask = DeviceDataMask.EndDeviceDataMask(builder);
 
         TrackerDataMask.StartTrackerDataMask(builder);
+        TrackerDataMask.AddInfo(builder, true);
+        TrackerDataMask.AddStatus(builder, true);
+        TrackerDataMask.AddPosition(builder, true);
+        TrackerDataMask.AddRotationIdentityAdjusted(builder, true);
+        TrackerDataMask.AddRotationReferenceAdjusted(builder, true);
         var syntheticTrackersMask = TrackerDataMask.EndTrackerDataMask(builder);
 
         DataFeedConfig.StartDataFeedConfig(builder);
@@ -194,88 +214,13 @@ public class NetworkHumanSkeleton : MonoBehaviour
             var dataFeedMsg = messageBundle.DataFeedMsgs(i);
             if (dataFeedMsg.HasValue && dataFeedMsg.Value.MessageType == DataFeedMessage.DataFeedUpdate)
             {
-                var dataFeedUpdate = dataFeedMsg.Value.MessageAsDataFeedUpdate();
-                ProcessDataFeedUpdate(dataFeedUpdate);
+                LatestDataFeedUpdate = new()
+                {
+                    Update = dataFeedMsg.Value.MessageAsDataFeedUpdate(),
+                    CameraPosition = Camera.transform.position,
+                    CameraRotation = Camera.transform.rotation
+                };
             }
         }
-    }
-
-    private void ProcessDataFeedUpdate(DataFeedUpdate update)
-    {
-        if (update.BonesLength == 0)
-        {
-            return;
-        }
-
-        var headPosition = Vector3.zero;
-        var headInvRotation = Quaternion.identity;
-        for (var i = 0; i < update.BonesLength; ++i)
-        {
-            var optionalBone = update.Bones(i);
-            if (optionalBone.HasValue)
-            {
-                var bone = optionalBone.Value;
-                // Use the neck bone which is rotated in the correct way, unlike the head bone
-                if (bone.BodyPart == BodyPart.NECK &&
-                    bone.HeadPositionG.HasValue &&
-                    bone.RotationG.HasValue)
-                {
-                    headPosition = RHSToLHSVector3(bone.HeadPositionG.Value);
-                    headInvRotation = Quaternion.Inverse(RHSToLHSQuaternion(bone.RotationG.Value));
-                }
-            }
-        }
-
-        for (var i = 0; i < update.BonesLength; ++i)
-        {
-            var optionalBone = update.Bones(i);
-            if (optionalBone.HasValue)
-            {
-                var bone = optionalBone.Value;
-
-                // The head bone blocks the view
-                if (bone.BodyPart == BodyPart.HEAD)
-                {
-                    continue;
-                }
-
-                if (!boneObjects.TryGetValue(bone.BodyPart, out var boneObject))
-                {
-                    boneObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                    boneObject.name = bone.BodyPart.ToString();
-                    boneObject.transform.parent = transform;
-
-                    boneObjects.Add(bone.BodyPart, boneObject);
-                }
-
-                if (bone.HeadPositionG.HasValue && bone.RotationG.HasValue)
-                {
-                    boneObject.transform.SetLocalPositionAndRotation(
-                        RHSToLHSVector3(bone.HeadPositionG.Value)
-                            - (bone.BoneLength * 0.5f) * (RHSToLHSQuaternion(bone.RotationG.Value) * Vector3.up)
-                            - headPosition,
-                        RHSToLHSQuaternion(bone.RotationG.Value));
-
-                    boneObject.transform.localScale = new Vector3(BoneRadius, bone.BoneLength * 0.5f, BoneRadius);
-                }
-            }
-        }
-
-        if (Camera != null)
-        {
-            transform.SetPositionAndRotation(
-                Camera.transform.position,
-                Camera.transform.rotation * headInvRotation);
-        }
-    }
-
-    private static Vector3 RHSToLHSVector3(Vec3f v)
-    {
-        return new Vector3(v.X, v.Y, -v.Z);
-    }
-
-    private static Quaternion RHSToLHSQuaternion(Quat q)
-    {
-        return new Quaternion(q.X, q.Y, -q.Z, -q.W);
     }
 }
