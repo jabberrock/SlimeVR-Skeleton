@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class Skeleton : MonoBehaviour
 {
-    public Camera Camera;
-
     public GameObject Networking;
+    public bool HideHead = false;
+    public GameObject AxisTemplate;
     public Material BoneMaterial;
     public Material PhysicalTrackerMaterial;
     public Material SyntheticTrackerMaterial;
@@ -20,8 +20,6 @@ public class Skeleton : MonoBehaviour
     private readonly Dictionary<BodyPart, GameObject> boneObjects = new();
     private readonly Dictionary<BodyPart, GameObject> physicalTrackerObjects = new();
     private readonly Dictionary<BodyPart, GameObject> syntheticTrackerObjects = new();
-
-    private Quaternion? InitialNeckRotation;
 
     void Update()
     {
@@ -46,18 +44,15 @@ public class Skeleton : MonoBehaviour
             if (optionalBone.HasValue)
             {
                 var bone = optionalBone.Value;
-                // Use the neck bone which is rotated in the correct way, unlike the head bone
-                if (bone.BodyPart == BodyPart.NECK &&
+                if (bone.BodyPart == BodyPart.HEAD &&
                     bone.HeadPositionG.HasValue &&
                     bone.RotationG.HasValue)
                 {
                     headPosition = RHSToLHSVector3(bone.HeadPositionG.Value);
-                    headInvRotation = Quaternion.Inverse(RHSToLHSQuaternion(bone.RotationG.Value));
-
-                    if (InitialNeckRotation == null)
-                    {
-                        InitialNeckRotation = RHSToLHSQuaternion(bone.RotationG.Value);
-                    }
+                    headInvRotation = 
+                        Quaternion.Inverse(
+                            RHSToLHSQuaternion(bone.RotationG.Value) 
+                            * Quaternion.AngleAxis(-90.0f, Vector3.right));
                 }
             }
         }
@@ -72,18 +67,40 @@ public class Skeleton : MonoBehaviour
 
             var bone = optionalBone.Value;
 
-            // The head bone blocks the view
-            if (bone.BodyPart == BodyPart.HEAD)
+            if (bone.BodyPart == BodyPart.NONE ||
+                (HideHead && bone.BodyPart == BodyPart.HEAD))
+            {
+                continue;
+            }
+
+            // Ignore fingers
+            var bodyPart = bone.BodyPart.ToString();
+            if (bodyPart.EndsWith("METACARPAL") ||
+                bodyPart.EndsWith("PROXIMAL") ||
+                bodyPart.EndsWith("DISTAL") ||
+                bodyPart.EndsWith("INTERMEDIATE"))
             {
                 continue;
             }
 
             if (!boneObjects.TryGetValue(bone.BodyPart, out var boneObject))
             {
-                boneObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                boneObject = new GameObject();
                 boneObject.name = "BONE_" + bone.BodyPart.ToString();
                 boneObject.transform.parent = transform;
-                boneObject.GetComponent<Renderer>().material = BoneMaterial;
+
+                var cylinderObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                cylinderObject.transform.parent = boneObject.transform;
+                cylinderObject.GetComponent<Renderer>().material = BoneMaterial;
+
+                if (AxisTemplate != null)
+                {
+                    var axisObject = Instantiate(AxisTemplate);
+                    axisObject.name = "Axis";
+                    axisObject.transform.parent = boneObject.transform;
+                    axisObject.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    axisObject.SetActive(true);
+                }
 
                 boneObjects.Add(bone.BodyPart, boneObject);
             }
@@ -96,7 +113,8 @@ public class Skeleton : MonoBehaviour
                         - headPosition,
                     RHSToLHSQuaternion(bone.RotationG.Value));
 
-                boneObject.transform.localScale = new Vector3(BoneRadius, bone.BoneLength * 0.5f, BoneRadius);
+                var cylinderTransform = boneObject.transform.GetChild(0);
+                cylinderTransform.localScale = new Vector3(BoneRadius, bone.BoneLength * 0.5f, BoneRadius);
 
                 boneObject.SetActive(true);
             }
@@ -130,7 +148,8 @@ public class Skeleton : MonoBehaviour
                 }
 
                 var trackerBodyPart = tracker.Info.Value.BodyPart;
-                if (trackerBodyPart == BodyPart.NONE || trackerBodyPart == BodyPart.HEAD)
+                if (trackerBodyPart == BodyPart.NONE ||
+                    (HideHead && trackerBodyPart == BodyPart.HEAD))
                 {
                     continue;
                 }
@@ -177,7 +196,8 @@ public class Skeleton : MonoBehaviour
             }
 
             var trackerBodyPart = tracker.Info.Value.BodyPart;
-            if (trackerBodyPart == BodyPart.NONE || trackerBodyPart == BodyPart.HEAD)
+            if (trackerBodyPart == BodyPart.NONE ||
+                (HideHead && trackerBodyPart == BodyPart.HEAD))
             {
                 continue;
             }
