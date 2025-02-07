@@ -73,7 +73,7 @@ public class Skeleton : MonoBehaviour
                 continue;
             }
 
-            // Ignore fingers
+
             var bodyPart = bone.BodyPart.ToString();
             if (bodyPart.EndsWith("METACARPAL") ||
                 bodyPart.EndsWith("PROXIMAL") ||
