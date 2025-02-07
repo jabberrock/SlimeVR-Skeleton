@@ -10,9 +10,11 @@ using UnityEngine;
 public class YawPitchRollTable : MonoBehaviour
 {
     public GameObject Networking;
+    public bool RawRotations;
 
-    private const float SpacingX = 0.2f;
-    private const float SpacingY = 0.1f;
+    private const float SpacingX = 0.12f;
+    private const float SpacingY = 0.05f;
+    private const float ArrowOffsetX = 0.06f;
 
     private static readonly Color GoodAngleDelta = new(0.0f, 0.7f, 0.0f);
     private static readonly Color BadAngleDelta = new(1.0f, 0.0f, 0.0f);
@@ -21,26 +23,35 @@ public class YawPitchRollTable : MonoBehaviour
     private class TrackerRow
     {
         public TextMeshPro Name;
+        
         public TextMeshPro Yaw;
+        public TextMeshPro YawLeft;
+        public TextMeshPro YawRight;
+        
         public TextMeshPro Pitch;
+        public TextMeshPro PitchBack;
+        public TextMeshPro PitchForward;
+        
         public TextMeshPro Roll;
+        public TextMeshPro RollLeft;
+        public TextMeshPro RollRight;
     }
 
     private readonly Dictionary<BodyPart, TrackerRow> trackerRows = new();
 
     void Start()
     {
-        CreateRow("HEADER", "", "Yaw", "Pitch", "Roll", 0);
+        CreateRow("HEADER", RawRotations ? "Raw" : "Adjusted", "Yaw", "Pitch", "Roll", 0, false);
 
-        trackerRows.Add(BodyPart.HEAD, CreateRow("HEAD", "Head", "", "", "", 1));
-        trackerRows.Add(BodyPart.CHEST, CreateRow("CHEST", "Chest", "", "", "", 2));
-        trackerRows.Add(BodyPart.HIP, CreateRow("HIP", "Hip", "", "", "", 3));
-        trackerRows.Add(BodyPart.LEFT_UPPER_LEG, CreateRow("LEFT_UPPER_LEG", "L Thigh", "", "", "", 4));
-        trackerRows.Add(BodyPart.RIGHT_UPPER_LEG, CreateRow("RIGHT_UPPER_LEG", "R Thigh", "", "", "", 5));
-        trackerRows.Add(BodyPart.LEFT_LOWER_LEG, CreateRow("LEFT_LOWER_LEG", "L Ankle", "", "", "", 6));
-        trackerRows.Add(BodyPart.RIGHT_LOWER_LEG, CreateRow("RIGHT_LOWER_LEG", "R Ankle", "", "", "", 7));
-        trackerRows.Add(BodyPart.LEFT_FOOT, CreateRow("LEFT_FOOT", "L Foot", "", "", "", 8));
-        trackerRows.Add(BodyPart.RIGHT_FOOT, CreateRow("RIGHT_FOOT", "R Foot", "", "", "", 9));
+        trackerRows.Add(BodyPart.HEAD, CreateRow("HEAD", "Head", "", "", "", 1, true));
+        trackerRows.Add(BodyPart.CHEST, CreateRow("CHEST", "Chest", "", "", "", 2, true));
+        trackerRows.Add(BodyPart.HIP, CreateRow("HIP", "Hip", "", "", "", 3, true));
+        trackerRows.Add(BodyPart.LEFT_UPPER_LEG, CreateRow("LEFT_UPPER_LEG", "L Thigh", "", "", "", 4, true));
+        trackerRows.Add(BodyPart.RIGHT_UPPER_LEG, CreateRow("RIGHT_UPPER_LEG", "R Thigh", "", "", "", 5, true));
+        trackerRows.Add(BodyPart.LEFT_LOWER_LEG, CreateRow("LEFT_LOWER_LEG", "L Ankle", "", "", "", 6, true));
+        trackerRows.Add(BodyPart.RIGHT_LOWER_LEG, CreateRow("RIGHT_LOWER_LEG", "R Ankle", "", "", "", 7, true));
+        trackerRows.Add(BodyPart.LEFT_FOOT, CreateRow("LEFT_FOOT", "L Foot", "", "", "", 8, true));
+        trackerRows.Add(BodyPart.RIGHT_FOOT, CreateRow("RIGHT_FOOT", "R Foot", "", "", "", 9, true));
     }
 
     void Update()
@@ -53,31 +64,54 @@ public class YawPitchRollTable : MonoBehaviour
 
         var dataFeed = latestUpdate.Update;
 
-        var headEulerAngles = Vector3.zero;
-        var headTracker = FindTracker(dataFeed, BodyPart.HEAD);
-        if (headTracker.HasValue)
+        var rootEulerAngles = Vector3.zero;
+        var rootTracker = FindTracker(dataFeed, BodyPart.CHEST);
+        if (rootTracker.HasValue)
         {
-            var rotation = headTracker.Value.RotationReferenceAdjusted;
+            var rotation = rootTracker.Value.RotationReferenceAdjusted;
             if (rotation.HasValue)
             {
-                headEulerAngles = RHSToLHSQuaternion(rotation.Value).eulerAngles;
+                rootEulerAngles = RHSToLHSQuaternion(rotation.Value).eulerAngles;
             }
         }
 
         foreach (var (bodyPart, trackerRow) in trackerRows)
         {
-            var updated = false;
+            // Reset
+            trackerRow.Yaw.text = "-";
+            trackerRow.Yaw.color = Color.gray;
+            trackerRow.YawLeft.color = Color.clear;
+            trackerRow.YawRight.color = Color.clear;
+
+            trackerRow.Pitch.text = "-";
+            trackerRow.Pitch.color = Color.gray;
+            trackerRow.PitchBack.color = Color.clear;
+            trackerRow.PitchForward.color = Color.clear;
+
+            trackerRow.Roll.text = "-";
+            trackerRow.Roll.color = Color.gray;
+            trackerRow.RollLeft.color = Color.clear;
+            trackerRow.RollRight.color = Color.clear;
 
             var tracker = FindTracker(dataFeed, bodyPart);
             if (tracker.HasValue)
             {
-                var rotation = tracker.Value.RotationReferenceAdjusted;
+                Quat? rotation;
+                if (RawRotations)
+                {
+                    rotation = tracker.Value.Rotation;
+                }
+                else
+                {
+                    rotation = tracker.Value.RotationReferenceAdjusted;
+                }
+
                 if (rotation.HasValue)
                 {
                     var eulerAngles = RHSToLHSQuaternion(rotation.Value).eulerAngles;
 
                     // Yaw
-                    var yaw = (int)(eulerAngles.y - headEulerAngles.y);
+                    var yaw = (int)(eulerAngles.y - rootEulerAngles.y);
                     if (yaw < 0)
                     {
                         yaw += 360;
@@ -87,20 +121,24 @@ public class YawPitchRollTable : MonoBehaviour
                         yaw -= 360;
                     }
 
+                    var yawColor = AngleDeltaColor(yaw);
                     if (yaw < 0)
                     {
-                        trackerRow.Yaw.text = $"\u2190 {-yaw}";
+                        trackerRow.Yaw.text = (-yaw).ToString();
+                        trackerRow.Yaw.color = yawColor;
+                        trackerRow.YawLeft.color = yawColor;
                     }
                     else if (yaw > 0)
                     {
-                        trackerRow.Yaw.text = $"{yaw} \u2192";
+                        trackerRow.Yaw.text = yaw.ToString();
+                        trackerRow.Yaw.color = yawColor;
+                        trackerRow.YawRight.color = yawColor;
                     }
                     else
                     {
-                        trackerRow.Yaw.text = "\u2191";
+                        trackerRow.Yaw.text = "\u25EF";
+                        trackerRow.Yaw.color = yawColor;
                     }
-
-                    trackerRow.Yaw.color = AngleDeltaColor(yaw);
 
                     // Pitch
                     var pitch = (int)eulerAngles.x;
@@ -109,20 +147,25 @@ public class YawPitchRollTable : MonoBehaviour
                         pitch -= 360;
                     }
 
+                    var pitchColor = AngleDeltaColor(pitch);
                     if (pitch < 0)
                     {
-                        trackerRow.Pitch.text = $"\u2196 {-pitch}";
+                        trackerRow.Pitch.text = (-pitch).ToString();
+                        trackerRow.Pitch.color = pitchColor;
+                        trackerRow.PitchBack.color = pitchColor;
                     }
                     else if (pitch > 0)
                     {
-                        trackerRow.Pitch.text = $"{pitch} \u2197";
+                        trackerRow.Pitch.text = pitch.ToString();
+                        trackerRow.Pitch.color = pitchColor;
+                        trackerRow.PitchForward.color = pitchColor;
                     }
                     else
                     {
-                        trackerRow.Roll.text = "\u2191";
+                        trackerRow.Roll.text = "\u25EF";
+                        trackerRow.Pitch.color = pitchColor;
                     }
 
-                    trackerRow.Pitch.color = AngleDeltaColor(pitch);
 
                     // Roll
                     var roll = (int)eulerAngles.z;
@@ -131,51 +174,56 @@ public class YawPitchRollTable : MonoBehaviour
                         roll -= 360;
                     }
 
+                    var rollColor = AngleDeltaColor(roll);
                     if (roll < 0)
                     {
-                        trackerRow.Roll.text = $"\u2196 {-roll}";
+                        trackerRow.Roll.text = (-roll).ToString();
+                        trackerRow.Roll.color = rollColor;
+                        trackerRow.RollLeft.color = rollColor;
                     }
                     else if (roll > 0)
                     {
-                        trackerRow.Roll.text = $"{roll} \u2197";
+                        trackerRow.Roll.text = roll.ToString();
+                        trackerRow.Roll.color = rollColor;
+                        trackerRow.RollRight.color = rollColor;
                     }
                     else
                     {
-                        trackerRow.Roll.text = "\u2191";
+                        trackerRow.Roll.text = "\u25EF";
+                        trackerRow.Roll.color = rollColor;
                     }
-
-                    trackerRow.Roll.color = AngleDeltaColor(roll);
-
-                    updated = true;
                 }
-            }
-
-            if (!updated)
-            {
-                trackerRow.Yaw.text = "-";
-                trackerRow.Yaw.color = Color.gray;
-
-                trackerRow.Pitch.text = "-";
-                trackerRow.Pitch.color = Color.gray;
-
-                trackerRow.Roll.text = "-";
-                trackerRow.Roll.color = Color.gray;
             }
         }
     }
 
-    private TrackerRow CreateRow(string key, string name, string yaw, string pitch, string roll, int row)
+    private TrackerRow CreateRow(string key, string name, string yaw, string pitch, string roll, int row, bool showArrows)
     {
+        var y = -row * SpacingY;
+
+        var yawX = SpacingX * 1;
+        var pitchX = SpacingX * 2;
+        var rollX = SpacingX * 3;
+
         return new()
         {
-            Name = CreateText($"{key}_NAME", name, row, 0),
-            Yaw = CreateText($"{key}_YAW", yaw, row, 1),
-            Pitch = CreateText($"{key}_PITCH", pitch, row, 2),
-            Roll = CreateText($"{key}_ROLL", roll, row, 3),
+            Name = CreateText($"{key}_NAME", name, 0.0f, y),
+            // Yaw
+            Yaw = CreateText($"{key}_YAW", yaw, yawX, y),
+            YawLeft = showArrows ? CreateText($"{key}_YAW_LEFT", "\u2190", yawX - ArrowOffsetX * 0.5f, y) : null,
+            YawRight = showArrows ? CreateText($"{key}_YAW_RIGHT", "\u2192", yawX + ArrowOffsetX * 0.5f, y) : null,
+            // Pitch
+            Pitch = CreateText($"{key}_PITCH", pitch, pitchX, y),
+            PitchBack = showArrows ? CreateText($"{key}_PITCH_BACK", "\u2196", pitchX - ArrowOffsetX * 0.5f, y) : null,
+            PitchForward = showArrows ? CreateText($"{key}_PITCH_FORWARD", "\u2197", pitchX + ArrowOffsetX * 0.5f, y) : null,
+            // Roll
+            Roll = CreateText($"{key}_ROLL", roll, 3 * SpacingX, y),
+            RollLeft = showArrows ? CreateText($"{key}_ROLL_LEFT", "\u2196", rollX - ArrowOffsetX * 0.5f, y) : null,
+            RollRight = showArrows ? CreateText($"{key}_ROLL_RIGHT", "\u2197", rollX + ArrowOffsetX * 0.5f, y) : null,
         };
     }
 
-    private TextMeshPro CreateText(string key, string text, int row, int column)
+    private TextMeshPro CreateText(string key, string text, float x, float y)
     {
         var gameObject = new GameObject();
         gameObject.name = key;
@@ -193,7 +241,7 @@ public class YawPitchRollTable : MonoBehaviour
         textComponent.color = textTemplate.color;
 
         // Can only be positioned after adding TextMeshPro
-        gameObject.GetComponent<RectTransform>().localPosition = new Vector3(SpacingX * column, -SpacingY * row, 0.0f);
+        gameObject.GetComponent<RectTransform>().localPosition = new Vector3(x, y, 0.0f);
 
         return textComponent;
     }

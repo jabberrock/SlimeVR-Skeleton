@@ -148,6 +148,7 @@ public class NetworkHumanSkeleton : MonoBehaviour
         TrackerDataMask.AddInfo(builder, true);
         TrackerDataMask.AddStatus(builder, true);
         TrackerDataMask.AddPosition(builder, true);
+        TrackerDataMask.AddRotation(builder, true);
         TrackerDataMask.AddRotationIdentityAdjusted(builder, true);
         TrackerDataMask.AddRotationReferenceAdjusted(builder, true);
         var physicalTrackersMask = TrackerDataMask.EndTrackerDataMask(builder);
