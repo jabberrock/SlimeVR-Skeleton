@@ -71,7 +71,7 @@ public class YawPitchRollTable : MonoBehaviour
             var rotation = rootTracker.Value.RotationReferenceAdjusted;
             if (rotation.HasValue)
             {
-                rootEulerAngles = RHSToLHSQuaternion(rotation.Value).eulerAngles;
+                rootEulerAngles = RHSToLHSQuaternion(rotation.Value).ToEulerYZX();
             }
         }
 
@@ -108,7 +108,7 @@ public class YawPitchRollTable : MonoBehaviour
 
                 if (rotation.HasValue)
                 {
-                    var eulerAngles = RHSToLHSQuaternion(rotation.Value).eulerAngles;
+                    var eulerAngles = RHSToLHSQuaternion(rotation.Value).ToEulerYZX();
 
                     // Yaw
                     var yaw = (int)(eulerAngles.y - rootEulerAngles.y);

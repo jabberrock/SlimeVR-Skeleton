@@ -25,7 +25,7 @@ public class NetworkHumanSkeleton : MonoBehaviour
     public DataFeedEntry LatestDataFeedUpdate { get; private set; }
     
     private readonly Uri serverUri = new("ws://localhost:21110");
-    private const int FPS = 30;
+    private const int FPS = 60;
     private const int DataFeedUpdateDelayInMs = 1000 / FPS;
 
     private readonly CancellationTokenSource cancellationTokenSource = new();
