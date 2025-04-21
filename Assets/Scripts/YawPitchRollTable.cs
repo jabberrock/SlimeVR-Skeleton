@@ -56,16 +56,21 @@ public class YawPitchRollTable : MonoBehaviour
 
     void Update()
     {
-        var latestUpdate = Networking.GetComponent<NetworkHumanSkeleton>().LatestDataFeedUpdate;
-        if (latestUpdate == null)
+        if (!Networking.TryGetComponent<NetworkHumanSkeleton>(out var skeletonGameObject))
         {
             return;
         }
 
-        var dataFeed = latestUpdate.Update;
+        var maybeSkeleton = skeletonGameObject.Skeleton;
+        if (!maybeSkeleton.HasValue)
+        {
+            return;
+        }
+
+        var skeleton = maybeSkeleton.Value;
 
         var rootEulerAngles = Vector3.zero;
-        var rootTracker = FindTracker(dataFeed, BodyPart.CHEST);
+        var rootTracker = FindTracker(skeleton, BodyPart.CHEST);
         if (rootTracker.HasValue)
         {
             var rotation = rootTracker.Value.RotationReferenceAdjusted;
@@ -93,7 +98,7 @@ public class YawPitchRollTable : MonoBehaviour
             trackerRow.RollLeft.color = Color.clear;
             trackerRow.RollRight.color = Color.clear;
 
-            var tracker = FindTracker(dataFeed, bodyPart);
+            var tracker = FindTracker(skeleton, bodyPart);
             if (tracker.HasValue)
             {
                 Quat? rotation;

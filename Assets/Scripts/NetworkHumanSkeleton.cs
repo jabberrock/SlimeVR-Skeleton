@@ -3,44 +3,102 @@ using solarxr_protocol;
 using solarxr_protocol.data_feed;
 using solarxr_protocol.data_feed.device_data;
 using solarxr_protocol.data_feed.tracker;
+using solarxr_protocol.datatypes;
+using solarxr_protocol.datatypes.math;
 using solarxr_protocol.pub_sub;
 using solarxr_protocol.rpc;
 using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class NetworkHumanSkeleton : MonoBehaviour
 {
     public GameObject Camera;
-
-    public class DataFeedEntry
+    
+    public class Transform
     {
-        public DataFeedUpdate Update;
-        public Vector3 CameraPosition;
-        public Quaternion CameraRotation;
+        public Vector3 Translation;
+        public Quaternion Rotation;
     }
 
-    public DataFeedEntry LatestDataFeedUpdate { get; private set; }
-    
+    public DataFeedUpdate? Skeleton { get; private set; }
+    public Transform SkeletonToCameraTransform { get; private set; }
+
     private readonly Uri serverUri = new("ws://localhost:21110");
-    private const int FPS = 60;
+    private const int FPS = 200;
     private const int DataFeedUpdateDelayInMs = 1000 / FPS;
 
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
+    private DateTime lastCameraCheck;
+    private Transform lastCameraTransform;
+
     void Start()
     {
-        _ = RunNetworking(cancellationTokenSource.Token);
+        Task.Run(async () => await RunNetworking(cancellationTokenSource.Token));
     }
 
-    private void OnDestroy()
+    private void Update()
+    {
+        var now = DateTime.Now;
+        if (lastCameraTransform == null)
+        {
+            lastCameraCheck = now;
+            lastCameraTransform = new()
+            {
+                Translation = Camera.transform.position,
+                Rotation = Camera.transform.rotation,
+            };
+        }
+        else if (now > lastCameraCheck.AddSeconds(1.0))
+        {
+            var newCameraTransform = new Transform()
+            {
+                Translation = Camera.transform.position,
+                Rotation = Camera.transform.rotation,
+            };
+
+            if (Skeleton.HasValue &&
+                (newCameraTransform.Translation - lastCameraTransform.Translation).magnitude < 0.01f)
+            {
+                var skeleton = Skeleton.Value;
+                for (var i = 0; i < skeleton.BonesLength; ++i)
+                {
+                    var optionalBone = skeleton.Bones(i);
+                    if (optionalBone.HasValue)
+                    {
+                        var bone = optionalBone.Value;
+                        if (bone.BodyPart == BodyPart.HEAD &&
+                            bone.HeadPositionG.HasValue &&
+                            bone.RotationG.HasValue)
+                        {
+                            var headPosition = RHSToLHSVector3(bone.HeadPositionG.Value);
+                            var headRotation = RHSToLHSQuaternion(bone.RotationG.Value) * Quaternion.AngleAxis(-90.0f, Vector3.right);
+
+                            SkeletonToCameraTransform = new()
+                            {
+                                Translation = headPosition - newCameraTransform.Translation,
+                                Rotation = Quaternion.Inverse(newCameraTransform.Rotation) * headRotation,
+                            };
+                        }
+                    }
+                }
+            }
+
+            lastCameraCheck = now;
+            lastCameraTransform = newCameraTransform;
+        }
+    }
+
+    void OnDestroy()
     {
         cancellationTokenSource.Cancel();
     }
 
-    private async Awaitable RunNetworking(CancellationToken cancellationToken)
+    private async Task RunNetworking(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -55,7 +113,7 @@ public class NetworkHumanSkeleton : MonoBehaviour
         }
     }
 
-    private async Awaitable NetworkLoop(CancellationToken cancellationToken)
+    private async Task NetworkLoop(CancellationToken cancellationToken)
     {
         using var client = new ClientWebSocket();
 
@@ -215,13 +273,18 @@ public class NetworkHumanSkeleton : MonoBehaviour
             var dataFeedMsg = messageBundle.DataFeedMsgs(i);
             if (dataFeedMsg.HasValue && dataFeedMsg.Value.MessageType == DataFeedMessage.DataFeedUpdate)
             {
-                LatestDataFeedUpdate = new()
-                {
-                    Update = dataFeedMsg.Value.MessageAsDataFeedUpdate(),
-                    CameraPosition = Camera.transform.position,
-                    CameraRotation = Camera.transform.rotation
-                };
+                Skeleton = dataFeedMsg.Value.MessageAsDataFeedUpdate();
             }
         }
+    }
+
+    private static Vector3 RHSToLHSVector3(Vec3f v)
+    {
+        return new Vector3(v.X, v.Y, -v.Z);
+    }
+
+    private static Quaternion RHSToLHSQuaternion(Quat q)
+    {
+        return new Quaternion(q.X, q.Y, -q.Z, -q.W);
     }
 }

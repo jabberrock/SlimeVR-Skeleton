@@ -23,43 +23,28 @@ public class Skeleton : MonoBehaviour
 
     void Update()
     {
-        var skeleton = Networking.GetComponent<NetworkHumanSkeleton>();
-        if (skeleton == null)
+        if (!Networking.TryGetComponent<NetworkHumanSkeleton>(out var skeletonGameObject))
         {
             return;
         }
 
-        if (skeleton.LatestDataFeedUpdate == null)
+        var maybeSkeleton = skeletonGameObject.Skeleton;
+        if (!maybeSkeleton.HasValue)
         {
             return;
         }
 
-        var update = skeleton.LatestDataFeedUpdate.Update;
-
-        var headPosition = Vector3.zero;
-        var headInvRotation = Quaternion.identity;
-        for (var i = 0; i < update.BonesLength; ++i)
+        var skeletonToCameraTransform = skeletonGameObject.SkeletonToCameraTransform;
+        if (skeletonToCameraTransform == null)
         {
-            var optionalBone = update.Bones(i);
-            if (optionalBone.HasValue)
-            {
-                var bone = optionalBone.Value;
-                if (bone.BodyPart == BodyPart.HEAD &&
-                    bone.HeadPositionG.HasValue &&
-                    bone.RotationG.HasValue)
-                {
-                    headPosition = RHSToLHSVector3(bone.HeadPositionG.Value);
-                    headInvRotation = 
-                        Quaternion.Inverse(
-                            RHSToLHSQuaternion(bone.RotationG.Value) 
-                            * Quaternion.AngleAxis(-90.0f, Vector3.right));
-                }
-            }
+            return;
         }
 
-        for (var i = 0; i < update.BonesLength; ++i)
+        var skeleton = maybeSkeleton.Value;
+
+        for (var i = 0; i < skeleton.BonesLength; ++i)
         {
-            var optionalBone = update.Bones(i);
+            var optionalBone = skeleton.Bones(i);
             if (!optionalBone.HasValue)
             {
                 continue;
@@ -110,7 +95,7 @@ public class Skeleton : MonoBehaviour
                 boneObject.transform.SetLocalPositionAndRotation(
                     RHSToLHSVector3(bone.HeadPositionG.Value)
                         - (bone.BoneLength * 0.5f) * (RHSToLHSQuaternion(bone.RotationG.Value) * Vector3.up)
-                        - headPosition,
+                        - skeletonToCameraTransform.Translation,
                     RHSToLHSQuaternion(bone.RotationG.Value));
 
                 var cylinderTransform = boneObject.transform.GetChild(0);
@@ -124,9 +109,9 @@ public class Skeleton : MonoBehaviour
             }
         }
 
-        for (int i = 0; i < update.DevicesLength; i++)
+        for (int i = 0; i < skeleton.DevicesLength; i++)
         {
-            var optionalDevice = update.Devices(i);
+            var optionalDevice = skeleton.Devices(i);
             if (!optionalDevice.HasValue)
             {
                 continue;
@@ -181,9 +166,9 @@ public class Skeleton : MonoBehaviour
             }
         }
 
-        for (int i = 0; i < update.SyntheticTrackersLength; i++)
+        for (int i = 0; i < skeleton.SyntheticTrackersLength; i++)
         {
-            var optionalTracker = update.SyntheticTrackers(i);
+            var optionalTracker = skeleton.SyntheticTrackers(i);
             if (!optionalTracker.HasValue)
             {
                 continue;
@@ -216,7 +201,7 @@ public class Skeleton : MonoBehaviour
             if (tracker.Position.HasValue && tracker.RotationReferenceAdjusted.HasValue)
             {
                 trackerObject.transform.SetLocalPositionAndRotation(
-                    RHSToLHSVector3(tracker.Position.Value) - headPosition,
+                    RHSToLHSVector3(tracker.Position.Value) - skeletonToCameraTransform.Translation,
                     RHSToLHSQuaternion(tracker.RotationReferenceAdjusted.Value));
                 trackerObject.SetActive(true);
             }
@@ -226,9 +211,9 @@ public class Skeleton : MonoBehaviour
             }
         }
 
-        transform.SetLocalPositionAndRotation(
-            skeleton.LatestDataFeedUpdate.CameraPosition,
-            skeleton.LatestDataFeedUpdate.CameraRotation * headInvRotation);
+        //transform.SetLocalPositionAndRotation(
+        //    skeleton.Camera.transform.position,
+        //    skeleton.Camera.transform.rotation * headInvRotation);
     }
 
     private static Vector3 RHSToLHSVector3(Vec3f v)
